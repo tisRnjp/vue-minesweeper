@@ -9,14 +9,18 @@
         <ul>
           <li v-for="tile in tiles" :key="tile.index">
             <div class="tile-size tile" v-on:contextmenu="plantFlag($event, tile)" v-on:click="openTile(tile)">
-              <img class="tile-size tile-mine" v-if="tile.mine && !tile.cover" src="@/assets/mine.png" alt="mine" />
-              <img class="tile-size tile-flag" v-if="tile.flag" src="@/assets/flag.png" alt="flag" />
+              <img class="tile-size tile-image" v-if="tile.mine && !tile.cover && !tile.flag" src="@/assets/mine.png" alt="mine" />
+              <img class="tile-size tile-image" v-if="tile.flag" src="@/assets/flag.png" alt="flag" />
               <img class="tile-size" v-if="tile.cover" src="@/assets/tile.png" alt="cover" />
-              <!-- <img class="tile-size" v-if="land" src="" alt="land" /> -->
+              <img class="tile-size tile-image" v-if="!tile.cover && tile.hint > 0" :src="'static/' + tile.hint + '.png'" alt="hint"/>
             </div>
           </li>
         </ul>
       </div>
+    </div>
+    <div class="game-title">
+      <p v-if="wonGame">Congrats! You won.</p>
+      <p v-if="gameOver">Sorry, you failed.</p>
     </div>
   </div>
 </template>
@@ -31,7 +35,9 @@ export default {
       tiles: [],
       gameStatus: "Enjoy minesweeper",
       size: 10,
-      flaggedTiles: '',
+      flaggedTiles: [],
+      wonGame: false,
+      gameOver: false,
 
       // function to get random number
       getRandom: function() {
@@ -54,32 +60,20 @@ export default {
       let totalMine = 20;
 
       for (let i = 0; i < this.totalTile; i++) {
-          if (this.getRandom() > 5 && mineCount <= totalMine) {
-            this.tiles.push({
-              index: i,
-              mine: true,
-              flag: false,
-              cover: true,
-              hint: 0
-            });
+        if (this.getRandom() > 5 && mineCount <= totalMine) {
+          this.tiles.push({
+            index: i,
+            mine: true,
+            flag: false,
+            cover: true,
+            hint: 0
+          });
 
-            // count mine and break if count reached the total mine count
-            mineCount += 1;
+          // count mine and break if count reached the total mine count
+          mineCount += 1;
 
-            continue;
-          }
-
-// for test purpose
-        // if (i == 95) {
-        //   this.tiles.push({
-        //     index: i,
-        //     mine: true,
-        //     flag: false,
-        //     cover: true,
-        //     hint: 0
-        //   });
-        //   continue;
-        // }
+          continue;
+        }
 
         this.tiles.push({
           index: i,
@@ -89,8 +83,6 @@ export default {
           hint: 0
         });
       }
-
-      // console.log('mines ' + test)
     },
 
     // fill hints on board
@@ -103,7 +95,8 @@ export default {
           // get the index of first surrounding tile of the mine tile (tiles checked from top right corner of mine tile)
           let checkIndex = tile.index - this.size - 1;
           // set left limit for each row when checking the tiles (Eg. for first row tile index should be >= 0)
-          let leftLimit = (parseInt(tile.index/this.size) * this.size) - this.size;
+          let leftLimit =
+            parseInt(tile.index / this.size) * this.size - this.size;
           // set right limit for each row when checking the tiles (Eg. for first row tile index should be < 10)
           let rightLimit = leftLimit + this.size;
 
@@ -113,10 +106,7 @@ export default {
               // tile index should be between 0 and total number of tiles
               if (checkIndex >= 0 && checkIndex < this.totalTile) {
                 // tile index should be within limits for each row
-                if (
-                  checkIndex >= leftLimit &&
-                  checkIndex < rightLimit
-                ) {
+                if (checkIndex >= leftLimit && checkIndex < rightLimit) {
                   // fill hints on tile that do not have mine
                   if (!this.tiles[checkIndex].mine) {
                     // add hints for each mine touched by the current tile
@@ -147,11 +137,13 @@ export default {
       if (tile.cover || tile.flag) {
         tile.cover = tile.flag;
         tile.flag = !tile.flag;
-        tile.mine = false;
+        // tile.mine = true;
       }
 
-// after flagging the tile check the tiles that were flagged
-this.flaggedTiles = (this.flaggedTiles == '')?selectedTile:(this.flaggedTiles + "," + selectedTile);
+      // after flagging the tile check the tiles that were flagged
+      this.flaggedTiles.push(tile.index);
+
+      this.checkGame();
 
       return false;
     },
@@ -162,6 +154,22 @@ this.flaggedTiles = (this.flaggedTiles == '')?selectedTile:(this.flaggedTiles + 
 
       if (tile.cover) {
         tile.cover = false;
+        if (tile.mine) {
+          this.gameOver = true;
+          this.gameStatus = "Game Over";
+        }
+      }
+    },
+
+    // check if game is complete
+    checkGame: function() {
+      for (let i in this.flaggedTiles) {
+        if (this.tiles[i].mine) {
+          this.wonGame = true;
+          this.gameStatus = "You Won";
+        } else {
+          this.wonGame = false;
+        }
       }
     }
   },
@@ -207,13 +215,7 @@ this.flaggedTiles = (this.flaggedTiles == '')?selectedTile:(this.flaggedTiles + 
   height: 40px;
 }
 
-.tile-mine {
-  margin: 5px 5px;
-  width: 30px;
-  height: 30px;
-}
-
-.tile-flag {
+.tile-image {
   margin: 5px 5px;
   width: 30px;
   height: 30px;
