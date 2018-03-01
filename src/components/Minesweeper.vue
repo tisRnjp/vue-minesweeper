@@ -24,125 +24,153 @@
 <script>
 /* eslint-disable */
 export default {
-name: "Minesweeper",
-data() {
-  return {
-    title: "Minesweeper",
-    tiles: [],
-    gameStatus: "Enjoy minesweeper",
-    size: 10,
+  name: "Minesweeper",
+  data() {
+    return {
+      title: "Minesweeper",
+      tiles: [],
+      gameStatus: "Enjoy minesweeper",
+      size: 10,
+      flaggedTiles: '',
 
-    // function to get random number
-    getRandom: function() {
-      return Math.floor(Math.random() * Math.floor(10));
+      // function to get random number
+      getRandom: function() {
+        return Math.floor(Math.random() * Math.floor(10));
+      }
+    };
+  }, //  data ()
+
+  // computed methods
+  computed: {
+    totalTile: function() {
+      return this.size * this.size;
     }
-  };
-}, //  data ()
+  },
 
-// computed methods
-computed: {
-  totalTile: function () {
-    return this.size * this.size;
-  }
-},
+  methods: {
+    // fill mines on board
+    fillMine: function() {
+      let mineCount = 0;
+      let totalMine = 20;
 
-methods: {
-  // fill mines on board
-  fillMine: function() {
-    let mineCount = 0;
-    let totalMine = 20;
+      for (let i = 0; i < this.totalTile; i++) {
+          if (this.getRandom() > 5 && mineCount <= totalMine) {
+            this.tiles.push({
+              index: i,
+              mine: true,
+              flag: false,
+              cover: true,
+              hint: 0
+            });
 
-    let test
+            // count mine and break if count reached the total mine count
+            mineCount += 1;
 
-    for (let i = 0; i < this.totalTile; i++) {
-      if (this.getRandom() > 5 && mineCount <= totalMine) {
+            continue;
+          }
+
+// for test purpose
+        // if (i == 95) {
+        //   this.tiles.push({
+        //     index: i,
+        //     mine: true,
+        //     flag: false,
+        //     cover: true,
+        //     hint: 0
+        //   });
+        //   continue;
+        // }
+
         this.tiles.push({
           index: i,
-          mine: true,
+          mine: false,
           flag: false,
           cover: true,
           hint: 0
         });
-
-        test = test + "," + i
-
-        // count mine and break if count reached the total mine count
-        mineCount += 1;
-
-        continue;
       }
 
-      this.tiles.push({
-        index: i,
-        mine: false,
-        flag: false,
-        cover: true,
-        hint: 0
-      });
-    }
+      // console.log('mines ' + test)
+    },
 
-    console.log('mines ' + test)
-  },
+    // fill hints on board
+    fillHint: function() {
+      let tilesChecked = "";
+      for (let tile in this.tiles) {
+        tile = this.tiles[tile];
+        // if mine is found in the tile then fill the hints on surrounding tiles
+        if (tile.mine) {
+          // get the index of first surrounding tile of the mine tile (tiles checked from top right corner of mine tile)
+          let checkIndex = tile.index - this.size - 1;
+          // set left limit for each row when checking the tiles (Eg. for first row tile index should be >= 0)
+          let leftLimit = (parseInt(tile.index/this.size) * this.size) - this.size;
+          // set right limit for each row when checking the tiles (Eg. for first row tile index should be < 10)
+          let rightLimit = leftLimit + this.size;
 
-  // fill hints on board
-  fillHint: function () {
-    let tilesChecked = '';
-    for (let tile in this.tiles) {
-      tile = this.tiles[tile]
-      if (tile.mine) {
-        let checkIndex = tile.index - this.size - 1;
-        for (let i = 0; i < 3; i++) {
-          let leftLimit = Math.abs(parseInt(checkIndex/10) * 10 )
-          if (checkIndex >= leftLimit && checkIndex < (leftLimit + this.size)) {
-            tilesChecked = tilesChecked + ' ' + tile.index;
-          for (let j = 0; j < 3; j++) {
-            if (checkIndex >= 0 && checkIndex < this.totalTile) {
-                this.tiles[checkIndex].hint += 1
-                console.log("checkIndex " + checkIndex)
+          // for loop to check surrounding tile of mine tile
+          for (let i = 0; i < 3; i++) {
+            for (let j = 0; j < 3; j++) {
+              // tile index should be between 0 and total number of tiles
+              if (checkIndex >= 0 && checkIndex < this.totalTile) {
+                // tile index should be within limits for each row
+                if (
+                  checkIndex >= leftLimit &&
+                  checkIndex < rightLimit
+                ) {
+                  // fill hints on tile that do not have mine
+                  if (!this.tiles[checkIndex].mine) {
+                    // add hints for each mine touched by the current tile
+                    this.tiles[checkIndex].hint += 1;
+                  }
+                }
               }
               // game logic goes here
               checkIndex += 1;
             }
+            // update left and right limit for next row
+            leftLimit = rightLimit;
+            rightLimit = leftLimit + this.size;
+
             checkIndex = checkIndex + this.size - 3;
-            }
+          }
         }
       }
+    },
+
+    // flag tile when right mouse button is clicked
+    plantFlag: function(event, selectedTile) {
+      event.preventDefault();
+
+      let tile = this.tiles[selectedTile.index];
+
+      // right click only allowed when tile is flagged or still unturned
+      if (tile.cover || tile.flag) {
+        tile.cover = tile.flag;
+        tile.flag = !tile.flag;
+        tile.mine = false;
+      }
+
+// after flagging the tile check the tiles that were flagged
+this.flaggedTiles = (this.flaggedTiles == '')?selectedTile:(this.flaggedTiles + "," + selectedTile);
+
+      return false;
+    },
+
+    // event listener for left mouse button
+    openTile: function(selectedTile) {
+      let tile = this.tiles[selectedTile.index];
+
+      if (tile.cover) {
+        tile.cover = false;
+      }
     }
-    // console.log(this.tiles);
-    console.log(tilesChecked);
   },
-
-  // flag tile when right mouse button is clicked
-  plantFlag: function (event, selectedTile) {
-    event.preventDefault();
-
-    let tile = this.tiles[selectedTile.index];
-
-    // right click only allowed when tile is flagged or still unturned
-    if (tile.cover || tile.flag) {
-      tile.cover = tile.flag;
-      tile.flag = !tile.flag;
-      tile.mine = false;
-    }
-
-    return false;
-  },
-
-  // event listener for left mouse button
-  openTile: function (selectedTile) {
-    let tile = this.tiles[selectedTile.index];
-
-    if (tile.cover) {
-      tile.cover = false;
-    }
-  }
-},
   // instance hooks
-  created: function () {
+  created: function() {
     this.fillMine();
     this.fillHint();
   } // created
-}
+};
 // tile image credit: Icons made by <a href="http://www.freepik.com" title="Freepik">Freepik</a> from <a href="https://www.flaticon.com/" title="Flaticon">www.flaticon.com</a> is licensed by <a href="http://creativecommons.org/licenses/by/3.0/" title="Creative Commons BY 3.0" target="_blank">CC 3.0 BY</a>
 // Image Credit, Mine: <div>Icons made by <a href="https://www.flaticon.com/authors/creaticca-creative-agency" title="Creaticca Creative Agency">Creaticca Creative Agency</a> from <a href="https://www.flaticon.com/" title="Flaticon">www.flaticon.com</a> is licensed by <a href="http://creativecommons.org/licenses/by/3.0/" title="Creative Commons BY 3.0" target="_blank">CC 3.0 BY</a></div>
 // Image Credit, Flage: <div>Icons made by <a href="https://www.flaticon.com/authors/smashicons" title="Smashicons">Smashicons</a> from <a href="https://www.flaticon.com/" title="Flaticon">www.flaticon.com</a> is licensed by <a href="http://creativecommons.org/licenses/by/3.0/" title="Creative Commons BY 3.0" target="_blank">CC 3.0 BY</a></div>
