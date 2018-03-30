@@ -158,23 +158,32 @@ export default {
           this.gameOver = true;
           this.gameStatus = "Game Over";
         }
+        this.checkGame();
       }
 
-      this.checkGame();
     },
 
     // check if game is complete
     checkGame: function() {
-      for (let i in this.tiles) {
-        // if a covered tile or flagged tile does not have mine then the game is not complete
-        if ((this.tiles[i].cover || this.tiles[i].flag) && !this.tiles[i].mine) {
-          this.wonGame = false;
-          console.log('mistaken mine: ' + i);
-          break;
-        } else {
-          this.wonGame = true;
-          this.gameStatus = "You Won";
+      // if game is already over no need to check for win
+      if (!gameOver) {
+        for (let i in this.tiles) {
+          // if tile with mine is turned then game is over
+          if (!this.tiles[i].cover && this.tiles[i].flag) {
+            this.wonGame = false;
+            // this.game
           }
+  
+          // if a covered tile or flagged tile does not have mine then the game is not complete
+          if ((this.tiles[i].cover || this.tiles[i].flag) && !this.tiles[i].mine) {
+            this.wonGame = false;
+            console.log('mistaken mine: ' + i);
+            break;
+          } else {
+            this.wonGame = true;
+            this.gameStatus = "You Won";
+          }
+        }
       }
     }
   },
